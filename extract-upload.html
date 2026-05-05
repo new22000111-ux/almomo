@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>فك ضغط ورفع الملفات</title>
+    <script src="https://unpkg.com/jszip@3/dist/jszip.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -217,7 +218,6 @@
         <div class="file-list" id="fileList"></div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
         const zipInput = document.getElementById('zipFile');
         const tokenInput = document.getElementById('token');
@@ -232,7 +232,6 @@
             fileNameDiv.textContent = e.target.files[0]?.name || '';
         });
         
-        // منع السلوك الافتراضي للـ drag and drop
         document.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -258,7 +257,7 @@
             }
             
             if (!file) {
-                showStatus('❌ الرجاء اختيار ملف ZIP', 'error');
+                showStatus('❌ الرجاء اختي��ر ملف ZIP', 'error');
                 return;
             }
             
@@ -269,13 +268,20 @@
             try {
                 showStatus('⏳ جاري قراءة الملف...', 'info');
                 
+                // انتظر تحميل JSZip
+                if (typeof JSZip === 'undefined') {
+                    showStatus('❌ خطأ: مكتبة JSZip لم تحمل', 'error');
+                    uploadBtn.disabled = false;
+                    return;
+                }
+                
                 const zip = new JSZip();
                 await zip.loadAsync(file);
                 
                 const files = [];
-                zip.forEach((path, file) => {
-                    if (!file.dir) {
-                        files.push({ path, file });
+                zip.forEach((path, fileObj) => {
+                    if (!fileObj.dir) {
+                        files.push({ path, file: fileObj });
                     }
                 });
                 
@@ -286,10 +292,10 @@
                 let successCount = 0;
                 
                 for (let i = 0; i < files.length; i++) {
-                    const { path, file } = files[i];
+                    const { path, file: zipFile } = files[i];
                     
                     try {
-                        const content = await file.async('base64');
+                        const content = await zipFile.async('base64');
                         
                         const response = await fetch(
                             `https://api.github.com/repos/${repo}/contents/${path}`,
@@ -318,7 +324,6 @@
                         addFileToList(path, '❌ ' + err.message);
                     }
                     
-                    // تحديث شريط التقدم
                     const progress = ((i + 1) / files.length) * 100;
                     progressBar.style.width = progress + '%';
                 }
