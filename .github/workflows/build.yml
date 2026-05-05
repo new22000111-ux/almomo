@@ -13,6 +13,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm install
+      - run: cd qr-ultimate-utils && npm install
       - run: npm install -g expo-cli eas-cli
-      - run: npx eas build -p android --profile preview --non-interactive
+      - run: cd qr-ultimate-utils && npx eas build -p android --profile preview --non-interactive
